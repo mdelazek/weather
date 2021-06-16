@@ -1,0 +1,40 @@
+<html>
+	<body>
+		<table border="1">
+			<tr>
+				<td> access_datetime </td>
+				<td> icon </td>
+				<td> location </td>
+				<td> temperature </td>
+				<td> city </td>
+				<td> color </td>
+			</tr>
+			{% for object in list %}
+				<tr>
+					<td>{{ object.access_datetime }}</td>
+					<td><img src="{{ object.icon }}"></td>
+					<td>{{ object.location }}</td>
+					<td>{{ object.temperature }}</td>
+					<td>{{ object.city }}</td>
+					<td>{{ object.color }}</td>
+				</tr>
+			{% endfor %}
+
+
+
+
+
+
+
+
+
+
+
+
+		
+	
+
+		</table>
+	</body>
+
+</html>

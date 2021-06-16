@@ -1,0 +1,44 @@
+import requests
+from bs4 import BeautifulSoup
+from django.shortcuts import render
+from django.template import loader
+from django.http import HttpResponse
+
+
+
+def index(request):
+	
+	template = loader.get_template('weather/index.html')
+	soup = BeautifulSoup(requests.get('https://www.drops.live/zielona-g%C3%B3ra-zielona-g%C3%B3ra-poland/51.93548,15.50643').text,'lxml')
+	temperature = soup.find('span',class_='temp temp left').text
+	city = soup.find('span',class_='city').text
+	icon = soup.find('img',class_='icon left')
+	int_temp = int(temperature[:-1])
+	if int_temp <= 10:
+		color = "blue"
+	elif int_temp < 30:
+		color = "yellow"
+	else:
+		color = "red"
+	src ='https://www.drops.live' + icon['src']
+	context = {'temperature':temperature,'city':city,'icon':src,'color':color}
+	return  HttpResponse(template.render(context,request))
+
+def xy(request,longitude_lattitude):
+	
+	template = loader.get_template('weather/xy.html')
+	soup = BeautifulSoup(requests.get('https://www.drops.live/'+longitude_lattitude).text,'lxml')
+	temperature = soup.find('span',class_='temp temp left').text
+	city = soup.find('span',class_='city').text
+	icon = soup.find('img',class_='icon left')
+	int_temp = int(temperature[:-1])
+	
+	if int_temp <= 10:
+		color = "blue"
+	elif int_temp < 30:
+		color = "yellow"
+	else:
+		color = "red"
+	src = 'https://www.drops.live' + icon['src']
+	context = {'temperature': temperature, 'city': city, 'icon': src, 'color': color}
+	return  HttpResponse(template.render(context,request))
