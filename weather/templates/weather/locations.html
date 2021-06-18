@@ -1,0 +1,32 @@
+<html>
+        <body align="center">
+		Stan na {{ last_survey }}
+                <table align="center" border="1">
+                        <tr>
+                                <td>Miejscowość</td>
+                                <td>Temperatura </td>
+                        </tr>
+                        {% for location in locations %}
+                                <tr>
+                                        <td><a href="http://192.168.0.140:8000/temperature/current/{{ location.location_name }}/">{{ location.location_name }}</a></td>
+                                        <td>{{ location.temperature }}&#x2103;</td>
+                                </tr>
+                        {% endfor %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                </table>
+        </body>
+

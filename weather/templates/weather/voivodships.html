@@ -1,0 +1,31 @@
+<html>
+        <body align="center">
+		Stan na {{ last_survey }}
+                <table align="center" border="1">
+                        <tr>
+                                <td> Województwo</td>
+                                <td> Średnia temperatura </td>
+                        </tr>
+                        {% for voivo, temp in voi_and_temp %}
+                                <tr>
+                                        <td><a href="http://192.168.0.140:8000/temperature/districts/{{ voivo.voivo_name }}">{{ voivo.voivo_name }}</a></td>
+                                        <td>{{ temp }}&#x2103;</td>
+				</tr>
+			{% endfor %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+                </table>
+        </body>
+
+</html>

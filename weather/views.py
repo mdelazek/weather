@@ -3,6 +3,7 @@ import datetime
 import random
 import requests
 from bs4 import BeautifulSoup
+from django.db.models import Avg
 from django.shortcuts import render
 from django.template import loader
 from django.http import HttpResponse
@@ -33,39 +34,23 @@ def random_long_latt(request,count):
 		i += 1
 	return HttpResponse(request)		
 degree_sign = u"\N{DEGREE SIGN}"
-def get_from_drops(*longitude_lattitude):
+def get_from_drops(location):
 
-	if longitude_lattitude == ():
-		soup = BeautifulSoup(requests.get('https://www.drops.live/zielona-g%C3%B3ra-zielona-g%C3%B3ra-poland/51.93548,15.50643').text,'lxml')
-		temperature = soup.find('span',class_='temp temp left').text
-		city = soup.find('span',class_='city').text
-		icon = soup.find('img',class_='icon left')
-		int_temp = int(temperature[:-1])
-		if int_temp <= 10:
-			color = "blue"
-		elif int_temp < 30:
-			color = "green"
-		else:
-			color = "red"
-		src ='https://www.drops.live' + icon['src']
-		context = {'temperature':temperature,'city':city,'icon':src,'color':color}
+	soup = BeautifulSoup(requests.get('https://www.drops.live/'+ location).text,'lxml')
+	temperature = soup.find('span',class_='temp temp left').text
+	city = soup.find('span',class_='city').text
+	icon = soup.find('img',class_='icon left')
+	int_temp = int(temperature[:-1])
+	if int_temp <= 10:
+		color = "blue"
+	elif int_temp < 30:
+		color = "green"
 	else:
-
-		soup = BeautifulSoup(requests.get('https://www.drops.live/'+ longitude_lattitude[0]).text,'lxml')
-		temperature = soup.find('span',class_='temp temp left').text
-		city = soup.find('span',class_='city').text
-		icon = soup.find('img',class_='icon left')
-		int_temp = int(temperature[:-1])
-		if int_temp <= 10:
-			color = "blue"
-		elif int_temp < 30:
-			color = "green"
-		else:
-			color = "red"
-		src ='https://www.drops.live' + icon['src']
-		context = {'temperature':temperature,'city':city,'icon':src,'color':color}
+		color = "red"
+	src ='https://www.drops.live' + icon['src']
+	context = {'temperature':temperature,'city':city,'icon':src,'color':color}
 	return context
-
+"""
 def index(request):
 	
 	current_date = datetime.datetime.now(datetime.timezone.utc)
@@ -81,19 +66,19 @@ def index(request):
 		db = WeatherLocation(access_datetime = datetime.datetime.now(), icon=context['icon'], location = '51.93548,15.50643',temperature = int(context['temperature'][:-1]), city = context['city'], color = context['color'])
 		db.save()
 	return  HttpResponse(template.render(context,request))
-
-def long_latt(request,longitude_lattitude):
+"""
+def get_for_location(request,location):
 
 	current_date = datetime.datetime.now(datetime.timezone.utc)
 	template = loader.get_template('weather/long_latt.html')
-	last_access = WeatherLocation.objects.filter(location=longitude_lattitude).order_by('-access_datetime')
+	last_access = WeatherLocation.objects.filter(city=location).order_by('-access_datetime')
 	is_in_db = last_access.exists() and (current_date - last_access[0].access_datetime).seconds <= 900
 	if is_in_db:
 		context = {'temperature': str(last_access[0].temperature) + degree_sign,
 			   'city': last_access[0].city, 'icon': last_access[0].icon, 'color': last_access[0].color}
 	else:
-		context = get_from_drops(longitude_lattitude)
-		db = WeatherLocation(access_datetime = datetime.datetime.now(), icon=context['icon'], location = longitude_lattitude, temperature = int(context['temperature'][:-1]), city = context['city'], color = context['color'])
+		context = get_from_drops(location)
+		db = WeatherLocation(access_datetime = datetime.datetime.now(), icon=context['icon'], location = location, temperature = int(context['temperature'][:-1]), city = context['city'], color = context['color'])
 		db.save()
 	return  HttpResponse(template.render(context,request))
 
@@ -111,7 +96,45 @@ def get_data_to_all_locations():
 def get_data_to_any_location():
 	pass
 
+def voivodships_and_average_temperature(request):
+	
+	fifteen_minutes = datetime.timedelta(minutes=15)
+	voivodships = Voivodship.objects.all()
+	average_temp = []
+	for voivo in voivodships:
+		last_access = Location.objects.filter(district__voivodship__voivo_name__startswith=voivo.voivo_name).order_by('-datetime')
+		locations = Location.objects.filter(district__voivodship__voivo_name__startswith=voivo.voivo_name).filter(datetime__date__gte = last_access[0].datetime - fifteen_minutes).aggregate(Avg('temperature'))['temperature__avg']
+		average_temp.append(round(locations,2))
+	voi_and_temp = zip(voivodships, average_temp)
+	context = {'voivodships': voivodships, 'voi_and_temp': voi_and_temp, 'last_survey': (last_access[0].datetime + datetime.timedelta(hours=2)).strftime("%B,%d,%Y %H:%M")}
+	return HttpResponse(loader.get_template('weather/voivodships.html').render(context,request))
+
+def districts_and_average_temperature(request,voivo_name):
+	
+	fifteen_minutes = datetime.timedelta(minutes=15)
+	districts = District.objects.filter(voivodship__voivo_name__startswith = voivo_name)
+	average_temp = []
+	for district in districts:
+		last_access = Location.objects.filter(district__district_name__startswith=district.district_name).order_by('-datetime')
+		locations = Location.objects.filter(district__district_name__startswith=district.district_name).filter(datetime__date__gte = last_access[0].datetime - fifteen_minutes).aggregate(Avg('temperature'))['temperature__avg']
+		average_temp.append(round(locations,2))
+	district_and_temp = zip(districts, average_temp)
+	context = {'districts': districts, 'district_and_temp':district_and_temp, 'last_survey': (last_access[0].datetime + datetime.timedelta(hours=2)).strftime("%B,%d,%Y %H:%M")}
+
+	return HttpResponse(loader.get_template('weather/districts.html').render(context,request))
+
+def locations_and_average_temperature(request,district_name):
+	
+	fifteen_minutes = datetime.timedelta(minutes=15)
+	last_access = Location.objects.filter(district__district_name__startswith = district_name).order_by('-datetime')
+	locations = Location.objects.filter(district__district_name__startswith = district_name).filter(datetime__date__gte = last_access[0].datetime - fifteen_minutes)
+	context = {'locations': locations, 'last_survey': (last_access[0].datetime + datetime.timedelta(hours=2)).strftime("%B,%d,%Y %H:%M")}
+
+	return HttpResponse(loader.get_template('weather/locations.html').render(context,request))
+
+
 def average_temperature_voivo(request,voivo):
+	
 	while True:
 		voivo = voivo.upper()
 		current_datetime = datetime.datetime.now(datetime.timezone.utc)

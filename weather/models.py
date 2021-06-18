@@ -60,6 +60,7 @@ class LocationManager(models.Manager):
 		url = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={settings.OPENWEATHER_KEY}'
 		response = requests.get(url).json()
 		if response['cod'] == '404':
+			Location.objects.filter(location_name = city).delete()
 			return 0
 		temperature_kelvin = response['main']['temp']
 		temperature_celsius = int(float(temperature_kelvin) - 273.15)
@@ -73,11 +74,11 @@ class LocationManager(models.Manager):
 
 class WeatherLocation(models.Model):
 	access_datetime = models.DateTimeField(default=timezone.now)
-	icon = models.CharField(max_length=20)
-	location = models.CharField(max_length=50)
+	icon = models.CharField(max_length=100)
+	location = models.CharField(max_length=100)
 	temperature = models.IntegerField()
-	city = models.CharField(max_length=20)
-	color = models.CharField(max_length=20)
+	city = models.CharField(max_length=100)
+	color = models.CharField(max_length=100)
 
 	objects = WeatherLocationManager()
 
