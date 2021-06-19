@@ -89,12 +89,21 @@ def table(request):
 	context = {'list': objects_db}
 	return  HttpResponse(template.render(context,request))
 
-def get_data_to_all_locations():
+def get_data_to_all_locations_when_new_db():
 	with open('weather/miastopow.csv','r',encoding='utf-8') as csvfile:
 		for i in csv.reader(csvfile,delimiter=';'):
 			Location.objects.get_data_to_from_openweather(i[0],i[1])
-def get_data_to_any_location():
-	pass
+	with open('weather/Brakujace_miasta.csv','r',encoding='utf-8') as csvfile:
+		for miasto in csv.reader(csvfile,delimiter=';'):
+			Location.objects.get_data_to_from_openweather(miasto[0],miasto[0])
+def get_data_to_all_location():
+	
+	locations = Location.objects.all()
+	name_list = []
+	for location in locations:
+		if location.location_name not in name_list:
+			Location.objects.get_data_to_from_openweather(location.location_name,location.district.district_name)
+			name_list.append(location.location_name)
 
 def voivodships_and_average_temperature(request):
 	
